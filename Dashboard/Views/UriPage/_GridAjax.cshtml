@@ -1,0 +1,56 @@
+﻿@using Microsoft.AspNetCore.Http
+@using Newtonsoft.Json
+@using NonFactors.Mvc.Grid
+
+@model IQueryable<Dashboard.Models.UriPageDto>
+
+@(Html
+      .Grid(Model)
+      .Build(columns =>
+      {
+          //columns.Add(model => model.Id).Hidden();
+          columns.Add(model => model.AbsoluteUri).Titled("Uri Key").Filterable(GridFilterCase.Lower);
+
+          columns.Add(model => model.CreateAt).Titled("Found At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
+              .Filterable(GridFilterType.Double).Hidden();
+          columns.Add(model => model.CrawledAt).Titled("Crawled At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
+              .Filterable(GridFilterType.Double);
+
+          columns.Add(model => model.StatusCode.ToString()).Titled("Status Code").Filterable(true);
+
+          columns.Add(model => model.HasLinks).Titled("Has x Links")
+            .RenderedAs(model=> model.HasLinks>0
+                ? Html.ActionLink(model.HasLinks.ToString(),"Index",new {parentId=model.Id}, new{target="_blank"})
+                : Html.Raw(model.HasLinks));
+          columns.Add(model => model.FromLinks).Titled("Found on x Pages")
+              .RenderedAs(model=> model.FromLinks>0
+                  ? Html.ActionLink(model.FromLinks.ToString(),"Index",new {childId=model.Id},new{target="_blank"})
+                  : Html.Raw(model.FromLinks));
+
+          columns.Add(model => model.Query).Titled("Query").Hidden();
+          columns.Add(model => model.Fragment).Titled("Fragment").Hidden();
+          columns.Add(model => model.Host).Titled("Host").Filterable(GridFilterType.Multi).Hidden();
+          columns.Add(model => model.ContentLength).Titled("Content Length").Hidden();
+
+          columns.Add(model => model.FailedAt).Titled("Failed At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
+              .Filterable(GridFilterType.Double).Hidden();
+          columns.Add(model => model.FailedException).Titled("Fail Log").Hidden();
+
+          //columns.Add(model => model.FullAbsoluteUri).Titled("Full Uri").Hidden();
+      })
+      .Using(GridFilterMode.Header)
+      .Empty("No data found")
+      .Filterable()
+      .Sortable()
+      .Pageable(pager =>
+      {
+          pager.PageSizes = new Dictionary<Int32, String> { { 20, "20" }, { 50, "50" }, { 100, "100" }, { 200, "200" } };
+          pager.ShowPageSizes = true;
+      })
+      //.Css("css-classes")
+      .AppendCss("table-hover")
+      //.Configure(new GridConfig()
+      //{
+      //    Columns =JsonConvert.DeserializeObject(HttpContext.Request.Cookies["gridColumnSetting"])
+      //})
+      )
