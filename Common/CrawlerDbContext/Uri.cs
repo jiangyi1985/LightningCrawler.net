@@ -12,6 +12,7 @@ namespace Common.CrawlerDbContext
         public string Scheme { get; set; }
         public string Fragment { get; set; }
         public string Query { get; set; }
+        public string OriginalString { get; set; }
         public DateTime? CreateAt { get; set; }
         public DateTime? FailedAt { get; set; }
         public string FailedException { get; set; }
@@ -22,6 +23,9 @@ namespace Common.CrawlerDbContext
         public int? ContentLength { get; set; }
         public string Content { get; set; }
         public string Canonical { get; set; }
-        public string OriginalString { get; set; }
+        public DateTime? BrowserFailedAt { get; set; }
+        public string BrowserFailedException { get; set; }
+        public DateTime? BrowserCrawledAt { get; set; }
+        public string BrowserContent { get; set; }
     }
 }

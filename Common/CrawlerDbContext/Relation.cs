@@ -8,5 +8,6 @@ namespace Common.CrawlerDbContext
         public int ParentId { get; set; }
         public int ChildId { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public bool? IsBrowserRequired { get; set; }
     }
 }

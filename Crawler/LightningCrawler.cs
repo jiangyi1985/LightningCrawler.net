@@ -17,21 +17,25 @@ namespace Crawler
     {
         private readonly string _dbConStr;
         private readonly int _crawlerThreadCount;
+        private readonly int _browserCrawlerThreadCount;
         private readonly CrawlerContext _db;
         private readonly System.Uri _startPageUri;
         private readonly string[] _hosts;
 
         private readonly ConcurrentQueue<CrawlPlan> _queuePlan = new ConcurrentQueue<CrawlPlan>();
         private readonly ConcurrentQueue<CrawlResult> _queueCrawlResult = new ConcurrentQueue<CrawlResult>();
+        private readonly ConcurrentQueue<CrawlPlan> _queueBrowserPlan = new ConcurrentQueue<CrawlPlan>();
         private readonly Dictionary<string,int> _dicUriIdMapping = new Dictionary<string, int>();
 
         private readonly Dictionary<string, CrawlStatus> _dicPlanned = new Dictionary<string, CrawlStatus>();
+        private readonly Dictionary<string, CrawlStatus> _dicPlannedBrowser = new Dictionary<string, CrawlStatus>();
         //private readonly Dictionary<int, string> _dicUriPages = new Dictionary<int, string>();
 
-        public LightningCrawler(string dbConStr, string startPage, string[] hosts = null, int crawlerThreadCount=20)
+        public LightningCrawler(string dbConStr, string startPage, string[] hosts = null, int crawlerThreadCount=20, int browserCrawlerThreadCount=5)
         {
             _dbConStr = dbConStr;
             _crawlerThreadCount = crawlerThreadCount;
+            _browserCrawlerThreadCount = browserCrawlerThreadCount;
             _db = CrawlerContext.Create(dbConStr);
             _startPageUri = new System.Uri(startPage);
             _hosts = hosts ?? new string[] { _startPageUri.Host };
@@ -48,12 +52,21 @@ namespace Crawler
                 _db.SaveChanges();
             }
 
-            Task.Run(Planner);
+            Task.Run(PlannerStatic);
+
             for (int i = 0; i < _crawlerThreadCount; i++)
             {
-                Task.Run(Crawler);
+                Task.Run(CrawlerStatic);
             }
+
             Task.Run(Storer);
+
+
+            Task.Run(PlannerBrowser);
+            for (int i = 0; i < _browserCrawlerThreadCount; i++)
+            {
+                Task.Run(CrawlerBrowserWebDriver);
+            }
 
             while (true)
             {
@@ -64,12 +77,12 @@ namespace Crawler
                 //Console.WriteLine();
                 //Console.WriteLine();
                 //Console.WriteLine();
-                Console.WriteLine($"Pending Crawl: {_queuePlan.Count}\tPending Store: {_queueCrawlResult.Count}");
+                Console.WriteLine($"Pending Crawl: {_queuePlan.Count}\tPending Browser: {_queueBrowserPlan.Count}\tPending Store: {_queueCrawlResult.Count}");
                 Thread.Sleep(TimeSpan.FromSeconds(1));
             }
         }
 
-        private void Planner()
+        private void PlannerStatic()
         {
             while (true)
             {
@@ -102,10 +115,43 @@ namespace Crawler
                 Thread.Sleep(TimeSpan.FromSeconds(5));
             }
         }
-
-        private void Crawler()
+        private void PlannerBrowser()
         {
-            var webCrawler = new WebCrawler();
+            while (true)
+            {
+                try
+                {
+                    if (_queueBrowserPlan.IsEmpty)
+                    {
+                        Console.WriteLine($"\tPlan_Browser\tqueue is empty. checking db for new plan...");
+                        var pagesToCrawl = GetPagesToBrowserCrawl(_hosts);
+                        Console.WriteLine($"\tPlan_Browser\tfound {pagesToCrawl.Count} uncrawled pages. adding to queue");
+                        foreach (var crawlPlan in pagesToCrawl)
+                        {
+                            if (!_dicPlannedBrowser.ContainsKey(crawlPlan.AbsoluteUri))
+                            {
+                                _queueBrowserPlan.Enqueue(crawlPlan);
+                                _dicPlannedBrowser.TryAdd(crawlPlan.AbsoluteUri, null);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //Console.WriteLine($"\tPlan\tplan queue has {_queuePlan.Count} items");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+
+                Thread.Sleep(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        private void CrawlerStatic()
+        {
+            var webCrawler = new StaticWebCrawler();
             while (true)
             {
                 if (!_queuePlan.IsEmpty)
@@ -124,7 +170,7 @@ namespace Crawler
 
                             if (!tryDequeue) break;
 
-                            Console.WriteLine($"\t\t\t\tCrawler{Thread.CurrentThread.ManagedThreadId}\t{plan.AbsoluteUri}");
+                            Console.WriteLine($"\t\t\tCrawler{Thread.CurrentThread.ManagedThreadId}\t{plan.AbsoluteUri}");
                             var crawlResult = webCrawler.CrawlPage(plan);
 
                             //Console.WriteLine($"\tCrawl\tAdding crawl result to store queue...\t{plan.AbsoluteUri}");
@@ -133,6 +179,47 @@ namespace Crawler
                             //if crawl fails, remove from dicPlan so that it can be added again
                             if (crawlResult.FailException != null)
                                 _dicPlanned.Remove(crawlResult.AbsoluteUri);
+                        }
+                    }
+                }
+                else
+                {
+                    //Console.WriteLine($"\tCrawl\tno crawling required");
+                }
+
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+            }
+        }
+        private void CrawlerBrowserWebDriver()
+        {
+            var browserCrawler = new BrowserWebCrawler();
+            while (true)
+            {
+                if (!_queueBrowserPlan.IsEmpty)
+                {
+                    //var pendingCrawlCount = _queuePlan.Count;
+                    var pendingStoreCount = _queueCrawlResult.Count;
+
+                    if (pendingStoreCount > 500)
+                        Console.WriteLine($"\tCrawler_Browser{Thread.CurrentThread.ManagedThreadId}\ttoo many pending store {pendingStoreCount}, waiting...");
+                    else
+                    {
+                        //Console.WriteLine($"\tCrawl\tstart crawling for next items (20 at max) ");
+                        for (int i = 0; i < 10; i++)
+                        {
+                            var tryDequeue = _queueBrowserPlan.TryDequeue(out var plan);
+
+                            if (!tryDequeue) break;
+
+                            Console.WriteLine($"\t\t\t\tBrowser{Thread.CurrentThread.ManagedThreadId}\t{plan.AbsoluteUri}");
+                            var crawlResult = browserCrawler.CrawlPage(plan);
+
+                            //Console.WriteLine($"\tCrawl\tAdding crawl result to store queue...\t{plan.AbsoluteUri}");
+                            _queueCrawlResult.Enqueue(crawlResult);
+
+                            //if crawl fails, remove from dicPlan so that it can be added again
+                            if (crawlResult.BrowserFailedException != null)
+                                _dicPlannedBrowser.Remove(crawlResult.AbsoluteUri);
                         }
                     }
                 }
@@ -197,7 +284,14 @@ namespace Crawler
                 uri.CrawledAt = o.CrawledAt;
 
                 uri.ContentLength = o.ContentLength;
+                uri.Content = o.Content;
                 uri.Canonical = o.Canonical;
+
+                uri.BrowserCrawledAt = o.BrowserCrawledAt;
+                uri.BrowserContent = o.BrowserContent;
+                uri.BrowserFailedAt = o.BrowserFailedAt;
+                uri.BrowserFailedException = o.BrowserFailedException;
+                //todo:db new field here
 
                 return uri;
             }).ToList();
@@ -213,19 +307,19 @@ namespace Crawler
 
                 if (crawlResult.LinkAbsoluteUris != null)
                 {
-                    foreach (var linkAbsoluteUri in crawlResult.LinkAbsoluteUris)
+                    foreach (var crawledLink in crawlResult.LinkAbsoluteUris)
                     {
-                        if (pages.All(p => p.AbsoluteUri != linkAbsoluteUri))
+                        if (pages.All(p => p.AbsoluteUri != crawledLink.AbsoluteUri))
                         {
                             try
                             {
-                                var uri = new System.Uri(linkAbsoluteUri);
+                                var uri = new System.Uri(crawledLink.AbsoluteUri);
 
                                 pages.Add(NewUriDbModel(uri));
                             }
                             catch (UriFormatException e)
                             {
-                                pages.Add(NewUriDbModel(linkAbsoluteUri));
+                                pages.Add(NewUriDbModel(crawledLink.AbsoluteUri));
                             }
                         }
                     }
@@ -236,6 +330,7 @@ namespace Crawler
             _db.BulkMerge(pages, options =>
             {
                 options.ColumnPrimaryKeyExpression = o => o.AbsoluteUri;
+
                 options.IgnoreOnMergeUpdateExpression = o => new
                 {
                     o.AbsoluteUri,
@@ -247,6 +342,7 @@ namespace Crawler
                     o.CreateAt,
                     o.OriginalString,
                 };
+
                 //The CoalesceOnMergeUpdateExpression allows you to not update any column if the specified value is null and its database
                 //value is not null when BulkMerge method is executed.
                 options.CoalesceOnMergeUpdateExpression = o => new
@@ -258,63 +354,66 @@ namespace Crawler
                     o.TimeTaken,
                     o.CrawledAt,
                     o.ContentLength,
-                    //o.content,
+                    o.Content,
                     o.Canonical,
+                    o.BrowserCrawledAt,
+                    o.BrowserContent,
+                    o.BrowserFailedAt,
+                    o.BrowserFailedException,
+                    //todo:db new field here
                 };
-                //The CoalesceDestinationOnMergeUpdateExpression is the inverse of CoalesceOnMergeUpdateExpression, it allows you to update
-                //the new value if the database value is null otherwise it keeps the database value when BulkMerge method is executed.
-                //options.CoalesceDestinationOnMergeUpdateExpression = o => new
-                //{
-                //    o.FailedAt,
-                //    o.FailedException,
-                //    o.StatusCode,
-                //    o.StatusCodeString,
-                //    o.TimeTaken,
-                //    o.CrawledAt,
-                //    o.ContentLength,
-                //    //o.content,
-                //    o.Canonical,
-                //};
             });
 
             //update uri ids in memory
             foreach (var page in pages)
             {
-                if(!_dicUriIdMapping.ContainsKey(page.AbsoluteUri))
+                if (!_dicUriIdMapping.ContainsKey(page.AbsoluteUri))
                     _dicUriIdMapping.Add(page.AbsoluteUri, page.Id);
             }
 
             //--------------------------------save relations--------------------------------------
-            var relations=new List<Relation>();
+            var relations = new List<Relation>();
             var redirectRelations = new List<RedirectRelation>();
 
             foreach (var crawlResult in list)
             {
-                if(crawlResult.LocationAbsoluteUri!=null)
+                if (crawlResult.LocationAbsoluteUri != null)
                     redirectRelations.Add(new RedirectRelation()
                     {
                         SourceId = _dicUriIdMapping[crawlResult.AbsoluteUri],
-            DestinationId                        = _dicUriIdMapping[crawlResult.LocationAbsoluteUri],
+                        DestinationId = _dicUriIdMapping[crawlResult.LocationAbsoluteUri],
                         CreatedAt = DateTime.UtcNow,
                     });
                 else if (crawlResult.LinkAbsoluteUris != null)
                 {
-                    foreach (var linkAbsoluteUri in crawlResult.LinkAbsoluteUris)
+                    foreach (var crawledLink in crawlResult.LinkAbsoluteUris)
                     {
                         relations.Add(new Relation()
                         {
                             ParentId = _dicUriIdMapping[crawlResult.AbsoluteUri],
-                            ChildId = _dicUriIdMapping[linkAbsoluteUri],
+                            ChildId = _dicUriIdMapping[crawledLink.AbsoluteUri],
                             CreatedAt = DateTime.UtcNow,
+                            IsBrowserRequired = crawledLink.IsBrowserRequired,
                         });
                     }
                 }
             }
 
             if (relations.Count > 0)
-                _db.BulkMerge(relations,options=>options.IgnoreOnMergeUpdateExpression=o=>o.CreatedAt);
+                _db.BulkMerge(relations, options =>
+                {
+                    options.IgnoreOnMergeUpdateExpression = o => new
+                    {
+                        o.CreatedAt,
+                        o.IsBrowserRequired,//if a static relation already exists, ignore browser relations
+                    };
+                    //options.CoalesceOnMergeUpdateExpression = o => o.IsBrowserRequired;
+                });
             if (redirectRelations.Count > 0)
-                _db.BulkMerge(redirectRelations, options => options.IgnoreOnMergeUpdateExpression = o => o.CreatedAt);
+                _db.BulkMerge(redirectRelations, options =>
+                {
+                    options.IgnoreOnMergeUpdateExpression = o => o.CreatedAt;
+                });
 
             //Console.WriteLine($"Saved {list.Count} pages");
         }
@@ -761,7 +860,33 @@ namespace Crawler
             //Console.WriteLine("loading uncrawled pages (3)...");
 
 
-            //pagesToCrawl = db.Uri.Where(o => !o.CrawledAt.HasValue
+            pagesToCrawl = db.Uri.Where(o => !o.CrawledAt.HasValue
+                                             && (o.Scheme == "http" || o.Scheme == "https")
+                                             && hosts.Contains(o.Host)
+                                             && o.Fragment == ""
+
+                                             //&& o.Query == ""
+
+                                             //&& !o.AbsoluteUri.Contains("c!")
+                                             //&& !o.AbsoluteUri.Contains("i!")
+                                             //&& !o.AbsoluteUri.Contains("a!")
+                                             //&& !o.AbsoluteUri.Contains("p!")
+                                             && !o.AbsoluteUri.EndsWith(".png")
+                                             && !o.AbsoluteUri.EndsWith(".gif")
+                                             && !o.AbsoluteUri.EndsWith(".jpg")
+                )
+                .OrderBy(o => o.Id)
+                .Select(o => new CrawlPlan()
+                {
+                    AbsoluteUri = o.AbsoluteUri
+                })
+                .ToList();
+
+
+            //}
+
+            //recrawl 5xx pages
+            //pagesToCrawl = db.Uri.Where(o => o.CrawledAt.HasValue && o.StatusCode.ToString().StartsWith("5")
             //                                 && (o.Scheme == "http" || o.Scheme == "https")
             //                                 && hosts.Contains(o.Host)
             //                                 && o.Fragment == ""
@@ -783,10 +908,15 @@ namespace Crawler
             //    })
             //    .ToList();
 
+            return pagesToCrawl;
+        }
+        private List<CrawlPlan> GetPagesToBrowserCrawl(string[] hosts)
+        {
+            var db = CrawlerContext.Create(_dbConStr);
+            Console.WriteLine("loading un-browser-crawled pages...");
+            List<CrawlPlan> pagesToCrawl;
 
-            //}
-
-            pagesToCrawl = db.Uri.Where(o => o.CrawledAt.HasValue && o.StatusCode.ToString().StartsWith("5")
+            pagesToCrawl = db.Uri.Where(o => o.CrawledAt.HasValue && !o.BrowserCrawledAt.HasValue && o.StatusCode==200
                                              && (o.Scheme == "http" || o.Scheme == "https")
                                              && hosts.Contains(o.Host)
                                              && o.Fragment == ""
@@ -840,6 +970,11 @@ namespace Crawler
 
                 CreateAt = DateTime.UtcNow,
             };
+        }
+
+        ~LightningCrawler()
+        {
+
         }
     }
 

@@ -4,6 +4,10 @@
 
 @model IQueryable<Dashboard.Models.UriPageDto>
 
+@{
+    GridConfig gridConfig = ViewBag.gridConfig;
+}
+
 @(Html
       .Grid(Model)
       .Build(columns =>
@@ -11,10 +15,7 @@
           //columns.Add(model => model.Id).Hidden();
           columns.Add(model => model.AbsoluteUri).Titled("Uri Key").Filterable(GridFilterCase.Lower);
 
-          columns.Add(model => model.CreateAt).Titled("Found At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
-              .Filterable(GridFilterType.Double).Hidden();
-          columns.Add(model => model.CrawledAt).Titled("Crawled At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
-              .Filterable(GridFilterType.Double);
+          columns.Add(model => model.IsBrowserRequired).Titled("Browser Required?");
 
           columns.Add(model => model.StatusCode.ToString()).Titled("Status Code").Filterable(true);
 
@@ -27,6 +28,15 @@
                   ? Html.ActionLink(model.FromLinks.ToString(),"Index",new {childId=model.Id},new{target="_blank"})
                   : Html.Raw(model.FromLinks));
 
+          //columns.Add(model => model.Location).Titled("Location").Hidden();
+
+          columns.Add(model => model.CreateAt).Titled("Found At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
+              .Filterable(GridFilterType.Double).Hidden();
+          columns.Add(model => model.CrawledAt).Titled("Crawled At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
+              .Filterable(GridFilterType.Double);
+          columns.Add(model => model.BrowserCrawledAt).Titled("Browser Crawled At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
+              .Filterable(GridFilterType.Double);
+
           columns.Add(model => model.Query).Titled("Query").Hidden();
           columns.Add(model => model.Fragment).Titled("Fragment").Hidden();
           columns.Add(model => model.Host).Titled("Host").Filterable(GridFilterType.Multi).Hidden();
@@ -35,6 +45,9 @@
           columns.Add(model => model.FailedAt).Titled("Failed At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
               .Filterable(GridFilterType.Double).Hidden();
           columns.Add(model => model.FailedException).Titled("Fail Log").Hidden();
+          columns.Add(model => model.BrowserFailedAt).Titled("Browser Failed At").Formatted("{0:yyyy-MM-dd HH:mm:ss} UTC")
+              .Filterable(GridFilterType.Double).Hidden();
+          columns.Add(model => model.BrowserFailedException).Titled("Browser Fail Log").Hidden();
 
           //columns.Add(model => model.FullAbsoluteUri).Titled("Full Uri").Hidden();
       })
@@ -49,8 +62,5 @@
       })
       //.Css("css-classes")
       .AppendCss("table-hover")
-      //.Configure(new GridConfig()
-      //{
-      //    Columns =JsonConvert.DeserializeObject(HttpContext.Request.Cookies["gridColumnSetting"])
-      //})
+      .Configure(gridConfig??new GridConfig())
       )

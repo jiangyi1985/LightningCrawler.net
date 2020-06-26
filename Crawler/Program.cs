@@ -33,7 +33,6 @@ namespace Crawler
                 .Build();
 
 
-
             //var db = CrawlerContext.Create(Configuration.GetConnectionString("CrawlerDatabase"));
             //var u1=new Uri {AbsoluteUri = "key1"};
             //var u2 = new Uri { AbsoluteUri = "key2" };
@@ -48,9 +47,16 @@ namespace Crawler
 
             //db.BulkMerge(list,options=>options.ColumnPrimaryKeyExpression=o=>o.AbsoluteUri);
 
-            
 
             const string startPage = "https://www.domain.com/";
+            //var browserWebCrawler = new BrowserWebCrawler();
+            //var crawlResult = browserWebCrawler.CrawlPage(new CrawlPlan() {AbsoluteUri = "https://www.playerauctions.com/wow-account"});
+
+
+            //var staticWebCrawler = new StaticWebCrawler();
+            //var crawlResult = staticWebCrawler.CrawlPage(new CrawlPlan() { AbsoluteUri = "https://www.playerauctions.com/wow-gold/" });
+
+
 
             var crawler = new LightningCrawler(Configuration.GetConnectionString("CrawlerDatabase"), startPage,new string[]
             {
@@ -58,11 +64,15 @@ namespace Crawler
                 "subdomain1.domain.com",
                 "subdomain2.domain.com",
             },
-                40);
+                20,
+                2);
 
             crawler.Run();
         }
 
-        
+        ~Program()
+        {
+
+        }
     }
 }

@@ -692,17 +692,20 @@ class MvcGridPopup {
         checkbox.checked = !column.isHidden;
 
         checkbox.addEventListener("change", () => {
-            const i = column.grid.columns.indexOf(column);
 
-            for (const tr of column.grid.element.querySelectorAll("tr")) {
-                if (checkbox.checked) {
-                    tr.children[i].classList.remove("mvc-grid-hidden");
-                } else {
-                    tr.children[i].classList.add("mvc-grid-hidden");
-                }
-            }
+            //const i = column.grid.columns.indexOf(column);
 
-            column.isHidden = !checkbox.checked;
+            //for (const tr of column.grid.element.querySelectorAll("tr")) {
+            //    if (checkbox.checked) {
+            //        tr.children[i].classList.remove("mvc-grid-hidden");
+            //    } else {
+            //        tr.children[i].classList.add("mvc-grid-hidden");
+            //    }
+            //}
+
+            //column.isHidden = !checkbox.checked;
+
+            MvcGridPopup.setColumnDisplay(column, checkbox.checked);
 
             column.grid.element.dispatchEvent(new CustomEvent("gridconfigure", {
                 detail: { grid: column.grid },
@@ -805,19 +808,20 @@ class MvcGridPopup {
         window.addEventListener("mousedown", popup.hide);
         window.addEventListener("touchstart", popup.hide);
     }
-    //static setColumnDisplay(column, isDisplay) {
-    //    const i = column.grid.columns.indexOf(column);
 
-    //    for (const tr of column.grid.element.querySelectorAll("tr")) {
-    //        if (isDisplay) {
-    //            tr.children[i].classList.remove("mvc-grid-hidden");
-    //        } else {
-    //            tr.children[i].classList.add("mvc-grid-hidden");
-    //        }
-    //    }
+    static setColumnDisplay(column, isDisplay) {
+        const i = column.grid.columns.indexOf(column);
 
-    //    column.isHidden = !isDisplay;
-    //}
+        for (const tr of column.grid.element.querySelectorAll("tr")) {
+            if (isDisplay) {
+                tr.children[i].classList.remove("mvc-grid-hidden");
+            } else {
+                tr.children[i].classList.add("mvc-grid-hidden");
+            }
+        }
+
+        column.isHidden = !isDisplay;
+    }
 }
 
 MvcGridPopup.element = document.createElement("div");

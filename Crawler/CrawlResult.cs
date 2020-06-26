@@ -24,9 +24,23 @@ namespace Crawler
 
         //public HtmlDocument? Doc { get; set; }
         public int? ContentLength { get; set; }
+        public string Content { get; set; }
         public string Canonical { get; set; }
         //public string Location { get; set; }
 
-        public List<string> LinkAbsoluteUris { get; set; }
+
+        public List<CrawledLink> LinkAbsoluteUris { get; set; }
+
+
+        public DateTime? BrowserFailedAt { get; set; }
+        public string BrowserFailedException { get; set; }
+        public DateTime? BrowserCrawledAt { get; set; }
+        public string BrowserContent { get; set; }
+    }
+
+    public class CrawledLink
+    {
+        public string AbsoluteUri { get; set; }
+        public bool? IsBrowserRequired { get; set; }
     }
 }

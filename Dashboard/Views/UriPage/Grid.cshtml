@@ -1,9 +1,17 @@
-﻿@using NonFactors.Mvc.Grid
+﻿@using Microsoft.CodeAnalysis
+@using NonFactors.Mvc.Grid
 @model Dashboard.Models.UriPageListIndexDto
 
 @section Styles
 {
     <link href="~/css/mvc-grid/mvc-grid.css" rel="stylesheet">
+
+    @*@if (Model.HeaderText.StartsWith("Link Relation:"))
+    {
+        <style>
+            .container-fluid{background-color: lightgray}
+        </style>
+    }*@
 }
 
 @section Scripts
@@ -14,8 +22,10 @@
 
         document.querySelectorAll(".mvc-grid").forEach(element => new MvcGrid(element));
 
+        //var config = JSON.parse(localStorage.getItem('gridColumnSetting'));
+
         document.getElementById("GridConfigure").addEventListener("click",
-            function() {
+            function () {
                 new MvcGrid(document.querySelector(".mvc-grid")).showConfiguration(this);
             });
 
@@ -25,15 +35,17 @@
 
                 // Save configuration to a cookie/backend/etc.
                 //localStorage.setItem('gridColumnSetting', JSON.stringify(configuration));
-                //setCookie("gridColumnSetting",JSON.stringify(configuration),999); 
+                var jsonString = JSON.stringify(configuration);
+                var encoded = btoa(jsonString);
+                setCookie("gridColumnSetting", encoded, 999);
             });
 
-        //function setCookie(cname, cvalue, exdays) {
-        //    var d = new Date();
-        //    d.setTime(d.getTime() + (exdays*24*60*60*1000));
-        //    var expires = "expires="+ d.toUTCString();
-        //    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-        //}
+        function setCookie(cname, cvalue, exdays) {
+            var d = new Date();
+            d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+            var expires = "expires=" + d.toUTCString();
+            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        }
     </script>
 }
 

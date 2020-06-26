@@ -46,6 +46,12 @@ namespace Common.CrawlerDbContext
 
             modelBuilder.Entity<Uri>(entity =>
             {
+                entity.Property(e => e.BrowserContent).HasColumnType("ntext");
+
+                entity.Property(e => e.BrowserCrawledAt).HasColumnType("datetime");
+
+                entity.Property(e => e.BrowserFailedAt).HasColumnType("datetime");
+
                 entity.Property(e => e.Content).HasColumnType("ntext");
 
                 entity.Property(e => e.CrawledAt).HasColumnType("datetime");

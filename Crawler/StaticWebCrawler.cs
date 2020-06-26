@@ -7,10 +7,14 @@ using System.Text;
 using System.Web;
 using Common.CrawlerDbContext;
 using HtmlAgilityPack;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.Extensions;
+using OpenQA.Selenium.Support.UI;
 
 namespace Crawler
 {
-    public class WebCrawler
+    public class StaticWebCrawler
     {
         private string _redirectLocation = null;
 
@@ -20,7 +24,7 @@ namespace Crawler
 
             var web = new HtmlWeb();
             web.CaptureRedirect = true;
-            //web.PreRequest= request => WebPreRequest(request);
+            web.PreRequest= request => WebPreRequest(request);
             web.PostResponse = (request, response) => HtmlWeb_PostResponse(request, response);
 
             var stopWatch = new Stopwatch();
@@ -92,34 +96,44 @@ namespace Crawler
 
             //crawlResult.Doc = doc;
             crawlResult.ContentLength = doc.ParsedText.Length;
+            crawlResult.Content = doc.ParsedText;
 
             //find links
             var links = doc.DocumentNode.SelectNodes("//a[@href]");
             if (links != null)
             {
                 //Console.WriteLine($"\tfound {links.Count} child links.");
-                var linksToSave = new List<string>();
+                var linksToSave = new List<CrawledLink>();
                 foreach (var link in links)
                 {
                     var href = link.Attributes["href"].Value;
                     //if(href.Contains("fortnite-stats/")) Debugger.Break();
-                    if (href == "" || href.StartsWith("javascript:") || href.StartsWith("mailto:"))
-                        continue;
 
                     var decoded = HttpUtility.HtmlDecode(href);
+                    //if (decoded != href)
+                    //    Debugger.Break();
+
+                    if (decoded == "" || decoded.StartsWith("javascript:") || decoded.StartsWith("mailto:") || decoded.StartsWith("skype:"))
+                        continue;
 
                     try
                     {
                         var childUri = Util.GetUriObjectFromUriString(decoded, plan.AbsoluteUri);
 
                         //no duplicated links
-                        if (linksToSave.All(o => o != childUri.AbsoluteUri))
-                            linksToSave.Add(childUri.AbsoluteUri);
+                        if (linksToSave.All(o => o.AbsoluteUri != childUri.AbsoluteUri))
+                            linksToSave.Add(new CrawledLink()
+                            {
+                                AbsoluteUri = childUri.AbsoluteUri,
+                            });
                     }
-                    catch (UriFormatException e)
+                    catch (UriFormatException e)//for mal-formated uris, just add them into the list without using System.Uri
                     {
-                        if (linksToSave.All(o => o != decoded))
-                            linksToSave.Add(decoded);
+                        if (linksToSave.All(o => o.AbsoluteUri != decoded))
+                            linksToSave.Add(new CrawledLink()
+                            {
+                                AbsoluteUri = decoded,
+                            });
 
                         Console.WriteLine(e);
                     }
@@ -142,8 +156,11 @@ namespace Crawler
 
         private bool WebPreRequest(HttpWebRequest request)
         {
-            request.AllowAutoRedirect = false;
-            request.MaximumAutomaticRedirections = 1;
+            //request.AllowAutoRedirect = false;
+            //request.MaximumAutomaticRedirections = 1;
+
+            //request.Headers.Add("Accept-Language", "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7");
+
             return true;
         }
 
