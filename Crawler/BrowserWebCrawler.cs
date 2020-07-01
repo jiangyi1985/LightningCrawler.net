@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Web;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -16,7 +17,27 @@ namespace Crawler
         private IWebDriver driver;
         public BrowserWebCrawler()
         {
-            driver=new ChromeDriver();
+            var chromeOptions = new ChromeOptions()
+            {
+                
+            };
+
+            //chromeOptions.AddArgument("--host-resolver-rules=MAP www.google-analytics.com 127.0.0.1");
+            chromeOptions.AddArgument("--host-resolver-rules=MAP www.google-analytics.com ~NOTFOUND" +
+                                      ",MAP www.google.com ~NOTFOUND" +
+                                      ",MAP www.googletagmanager.com ~NOTFOUND" +
+                                      ",MAP i*.wp.com ~NOTFOUND" +
+                                      ",MAP cdn.rawgit.com ~NOTFOUND" +
+                                      ",MAP *.msecdn.net ~NOTFOUND" +
+                                      ",MAP dc.services.visualstudio.com ~NOTFOUND" +
+                                      ",MAP platform.twitter.com ~NOTFOUND" +
+                                      ",MAP s7.addthis.com ~NOTFOUND" +
+                                      ",MAP www.youtube.com ~NOTFOUND" +
+                                      ",MAP secureservercdn.net ~NOTFOUND" +
+                                      ",MAP tr.snapchat.com ~NOTFOUND");
+
+            driver =new ChromeDriver(chromeOptions);
+            driver.Manage().Timeouts().PageLoad=TimeSpan.FromSeconds(30);
         }
 
         public CrawlResult CrawlPage(CrawlPlan plan)
@@ -118,7 +139,7 @@ namespace Crawler
 
         ~BrowserWebCrawler()
         {
-
+            Console.WriteLine($"BrowserWebCrawler{Thread.CurrentThread.ManagedThreadId} is quiting!!!");
         }
     }
 }

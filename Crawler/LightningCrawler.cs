@@ -176,9 +176,9 @@ namespace Crawler
                             //Console.WriteLine($"\tCrawl\tAdding crawl result to store queue...\t{plan.AbsoluteUri}");
                             _queueCrawlResult.Enqueue(crawlResult);
 
-                            //if crawl fails, remove from dicPlan so that it can be added again
-                            if (crawlResult.FailException != null)
-                                _dicPlanned.Remove(crawlResult.AbsoluteUri);
+                            ////if crawl fails, remove from dicPlan so that it can be added again
+                            //if (crawlResult.FailException != null)
+                            //    _dicPlanned.Remove(crawlResult.AbsoluteUri);
                         }
                     }
                 }
@@ -217,9 +217,9 @@ namespace Crawler
                             //Console.WriteLine($"\tCrawl\tAdding crawl result to store queue...\t{plan.AbsoluteUri}");
                             _queueCrawlResult.Enqueue(crawlResult);
 
-                            //if crawl fails, remove from dicPlan so that it can be added again
-                            if (crawlResult.BrowserFailedException != null)
-                                _dicPlannedBrowser.Remove(crawlResult.AbsoluteUri);
+                            ////if crawl fails, remove from dicPlan so that it can be added again
+                            //if (crawlResult.BrowserFailedException != null)
+                            //    _dicPlannedBrowser.Remove(crawlResult.AbsoluteUri);
                         }
                     }
                 }
@@ -269,6 +269,9 @@ namespace Crawler
         private void SaveCrawlResults(List<CrawlResult> list)
         {
             //--------------------------------save pages--------------------------------------
+
+            if (list.Count!=list.Select(o=>o.AbsoluteUri).Distinct().Count())
+                Debugger.Break();
 
             //crawled pages
             var pages = list.Select(o =>
@@ -326,6 +329,9 @@ namespace Crawler
                 }
             }
 
+            if (pages.Count != pages.Select(o => o.AbsoluteUri).Distinct().Count())
+                Debugger.Break();
+
             //save
             _db.BulkMerge(pages, options =>
             {
@@ -364,12 +370,26 @@ namespace Crawler
                 };
             });
 
+
+            foreach (var crawlResult in list)
+            {
+                //if crawl fails, remove from dicPlan so that it can be added again
+                if (crawlResult.FailException != null)
+                    _dicPlanned.Remove(crawlResult.AbsoluteUri);
+
+                //if crawl fails, remove from dicPlan so that it can be added again
+                if (crawlResult.BrowserFailedException != null)
+                    _dicPlannedBrowser.Remove(crawlResult.AbsoluteUri);
+            }
+
+
             //update uri ids in memory
             foreach (var page in pages)
             {
                 if (!_dicUriIdMapping.ContainsKey(page.AbsoluteUri))
                     _dicUriIdMapping.Add(page.AbsoluteUri, page.Id);
             }
+
 
             //--------------------------------save relations--------------------------------------
             var relations = new List<Relation>();
@@ -917,16 +937,18 @@ namespace Crawler
             List<CrawlPlan> pagesToCrawl;
 
             pagesToCrawl = db.Uri.Where(o => o.CrawledAt.HasValue && !o.BrowserCrawledAt.HasValue && o.StatusCode==200
+
                                              && (o.Scheme == "http" || o.Scheme == "https")
                                              && hosts.Contains(o.Host)
                                              && o.Fragment == ""
 
                                              //&& o.Query == ""
 
-                                             //&& !o.AbsoluteUri.Contains("c!")
-                                             //&& !o.AbsoluteUri.Contains("i!")
-                                             //&& !o.AbsoluteUri.Contains("a!")
-                                             //&& !o.AbsoluteUri.Contains("p!")
+                                             && !o.AbsoluteUri.Contains("c!")
+                                             && !o.AbsoluteUri.Contains("i!")
+                                             && !o.AbsoluteUri.Contains("a!")
+                                             && !o.AbsoluteUri.Contains("p!")
+
                                              && !o.AbsoluteUri.EndsWith(".png")
                                              && !o.AbsoluteUri.EndsWith(".gif")
                                              && !o.AbsoluteUri.EndsWith(".jpg")

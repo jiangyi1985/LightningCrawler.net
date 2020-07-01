@@ -34,18 +34,18 @@ namespace Crawler
 
 
             //var db = CrawlerContext.Create(Configuration.GetConnectionString("CrawlerDatabase"));
-            //var u1=new Uri {AbsoluteUri = "key1"};
+            //var u1 = new Uri { AbsoluteUri = "key1" };
             //var u2 = new Uri { AbsoluteUri = "key2" };
-            //var u3 = new Uri { AbsoluteUri = "key3" };
-            //var list = new List<Uri> {u1, u2, u3};
+            //var u3 = new Uri { AbsoluteUri = "key1" };
+            //var list = new List<Uri> { u1, u2, u3 };
 
-            //db.Uri.Add(u1);
-            //db.Uri.Add(u2);
-            //db.SaveChanges();
+            ////db.Uri.Add(u1);
+            ////db.Uri.Add(u2);
+            ////db.SaveChanges();
+            ////db.BulkInsertOrUpdate(list);
 
-            //db.BulkInsertOrUpdate(list);
+            //db.BulkMerge(list, options => options.ColumnPrimaryKeyExpression = o => o.AbsoluteUri);
 
-            //db.BulkMerge(list,options=>options.ColumnPrimaryKeyExpression=o=>o.AbsoluteUri);
 
 
             const string startPage = "https://www.domain.com/";
