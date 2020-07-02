@@ -65,7 +65,8 @@ namespace Crawler
                 "subdomain2.domain.com",
             },
                 20,
-                2);
+                2,
+                0);
 
             crawler.Run();
         }
