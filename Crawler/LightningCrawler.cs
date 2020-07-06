@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Common.CrawlerDbContext;
+using Nest;
 using Uri = Common.CrawlerDbContext.Uri;
 
 namespace Crawler
@@ -67,6 +68,8 @@ namespace Crawler
             {
                 Task.Run(CrawlerBrowserWebDriver);
             }
+
+            //Task.Run(Indexer);
 
             while (true)
             {
