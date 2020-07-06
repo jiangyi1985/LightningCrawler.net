@@ -14,9 +14,11 @@ namespace Crawler
 {
     public class BrowserWebCrawler
     {
+        private readonly int _pageLoadWait;
         private IWebDriver driver;
-        public BrowserWebCrawler()
+        public BrowserWebCrawler(int pageLoadWait=0)
         {
+            _pageLoadWait = pageLoadWait;
             var chromeOptions = new ChromeOptions()
             {
                 
@@ -56,6 +58,10 @@ namespace Crawler
 
                 //todo: disable redirect
                 driver.Navigate().GoToUrl(plan.AbsoluteUri);
+
+                if (_pageLoadWait>0)
+                    Thread.Sleep(TimeSpan.FromSeconds(_pageLoadWait));
+
                 driverPageSource = driver.PageSource;
             }
             catch (Exception e)

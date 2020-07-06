@@ -19,6 +19,7 @@ namespace Crawler
         private readonly string _dbConStr;
         private readonly int _crawlerThreadCount;
         private readonly int _browserCrawlerThreadCount;
+        private readonly int _browserLoadWait;
         private readonly CrawlerContext _db;
         private readonly System.Uri _startPageUri;
         private readonly string[] _hosts;
@@ -32,11 +33,12 @@ namespace Crawler
         private readonly Dictionary<string, CrawlStatus> _dicPlannedBrowser = new Dictionary<string, CrawlStatus>();
         //private readonly Dictionary<int, string> _dicUriPages = new Dictionary<int, string>();
 
-        public LightningCrawler(string dbConStr, string startPage, string[] hosts = null, int crawlerThreadCount=20, int browserCrawlerThreadCount=5)
+        public LightningCrawler(string dbConStr, string startPage, string[] hosts = null, int crawlerThreadCount=20, int browserCrawlerThreadCount=5, int browserLoadWait=0)
         {
             _dbConStr = dbConStr;
             _crawlerThreadCount = crawlerThreadCount;
             _browserCrawlerThreadCount = browserCrawlerThreadCount;
+            _browserLoadWait = browserLoadWait;
             _db = CrawlerContext.Create(dbConStr);
             _startPageUri = new System.Uri(startPage);
             _hosts = hosts ?? new string[] { _startPageUri.Host };
@@ -195,7 +197,7 @@ namespace Crawler
         }
         private void CrawlerBrowserWebDriver()
         {
-            var browserCrawler = new BrowserWebCrawler();
+            var browserCrawler = new BrowserWebCrawler(_browserLoadWait);
             while (true)
             {
                 if (!_queueBrowserPlan.IsEmpty)
