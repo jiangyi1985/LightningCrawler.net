@@ -1,0 +1,86 @@
+﻿@using NonFactors.Mvc.Grid
+
+@{
+    ViewData["Title"] = "Search";
+}
+
+@section Styles
+{
+    <link href="~/css/mvc-grid/mvc-grid.css" rel="stylesheet">
+    <style>
+        em{ 
+            color: orchid;
+            font-style: normal;
+            font-weight: bold;
+        }
+    </style>
+}
+
+@section Scripts
+{
+    <script src="~/js/mvc-grid/mvc-grid.js"></script>
+
+    <script>
+
+        document.querySelectorAll(".mvc-grid").forEach(element => new MvcGrid(element));
+
+        //document.getElementById("GridConfigure").addEventListener("click",
+        //    function () {
+        //        new MvcGrid(document.querySelector(".mvc-grid")).showConfiguration(this);
+        //    });
+
+        //document.addEventListener("gridconfigure",
+        //    e => {
+        //        const configuration = e.detail.grid.getConfiguration();
+
+        //        var jsonString = JSON.stringify(configuration);
+        //        var encoded = btoa(jsonString);
+        //        setCookie("gridColumnSetting_search", encoded, 999);
+        //    });
+
+        //function setCookie(cname, cvalue, exdays) {
+        //    var d = new Date();
+        //    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+        //    var expires = "expires=" + d.toUTCString();
+        //    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        //}
+
+        function go(obj, e) {
+            if(e.keyCode==13)
+                window.location.href = updateQueryStringParameter(window.location.href, 'keyword', obj.value);
+        }
+        function updateQueryStringParameter(uri, key, value) {
+            var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+            var separator = uri.indexOf('?') !== -1 ? "&" : "?";
+            if (uri.match(re)) {
+                return uri.replace(re, '$1' + key + "=" + value + '$2');
+            }
+            else {
+                return uri + separator + key + "=" + value;
+            }
+        }
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        };
+
+        document.getElementById('txtKeyword').value = getUrlParameter('keyword');
+    </script>
+}
+
+<div class="container-fluid">
+    <h3>Search</h3>
+    
+    <div class="row">
+        <div class="col-1"></div>
+        <label class="col-1">Search Keyword:</label>
+        <input class="form-control col-6" type="text" value="" id="txtKeyword" onkeypress="go(this,event)" />
+    </div>
+    <div class="row">
+        <div class="col-11">&nbsp;</div>
+        @*<button type="button" class="btn btn-link col-1" id="GridConfigure">Show Columns...</button>*@
+    </div>
+        @Html.AjaxGrid(Url.Action("GridAjax", "Search", new { keyword = @Model }))
+    </div>

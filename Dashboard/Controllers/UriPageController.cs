@@ -48,7 +48,7 @@ namespace Dashboard.Controllers
             else
                 headerText = "URL";
 
-            return View("Grid", new UriPageListIndexDto
+            return View("UriList", new UriPageListIndexDto
             {
                 ParentId = parentId,
                 ChildId = childId,
@@ -155,14 +155,14 @@ namespace Dashboard.Controllers
                 ViewBag.gridConfig = gridConfig;
             }
 
-            return PartialView("_GridAjax", query.OrderByDescending(o=>o.FromLinks));
+            return PartialView("_UriGridPartial", query.OrderByDescending(o=>o.FromLinks));
         }
 
-// GET: UriPage/Details/5
-public ActionResult Details(int id)
-        {
-            return View();
-        }
+        // GET: UriPage/Details/5
+        public ActionResult Details(int id)
+                {
+                    return View();
+                }
 
         // GET: UriPage/Create
         public ActionResult Create()

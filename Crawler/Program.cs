@@ -10,6 +10,7 @@ using System.Text.Encodings.Web;
 using System.Threading;
 using System.Web;
 using Common.CrawlerDbContext;
+using Common.ElasticSearchModel;
 using Common.Util;
 //using EFCore.BulkExtensions;
 using HtmlAgilityPack;
@@ -36,22 +37,25 @@ namespace Crawler
 
             if (args.Length > 0 && args[0] == "indexer")
             {
-                var settings = new ConnectionSettings(new System.Uri("http://localhost:9200"))
-                    .DefaultIndex("uri").BasicAuthentication("elastic", "");
+                var esConfig=Configuration.GetSection("ESConnection");
+                var settings = new ConnectionSettings(new System.Uri(esConfig["Host"]))
+                    .DefaultIndex("uri").BasicAuthentication(esConfig["Username"], esConfig["Password"]);
                 var elasticClient = new ElasticClient(settings);
                 //var uri = new Uri { AbsoluteUri = "key1", BrowserContent = "<fkjaslkdf>a sdlfjlasjdflsM</asdf> lkafsjiw fasd fjl<a></a>", CrawledAt = DateTime.UtcNow };
                 //var indexResponse = elasticClient.IndexDocument(uri);
                 var db = CrawlerContext.Create(Configuration.GetConnectionString("CrawlerDatabase"));
-                var uriDocuments = db.Uri.Where(o => o.BrowserContent != null)
+                Console.WriteLine($"Fetching db data...");
+                var uriDocuments = db.Uri.Where(o => o.Content != null)
                     .OrderBy(o => o.Id)
                     .Select(o => new UriDocument()
                     {
                         AbsoluteUri = o.AbsoluteUri,
-                        BrowserHtml = o.BrowserContent,
+                        BrowserHtml = o.BrowserContent??o.Content,
                         Id = o.Id,
                         OriginalUriString = o.OriginalString,
                     })
                     .ToList();
+                Console.WriteLine($"Parsing html and generating doc text...");
                 var htmlDoc = new HtmlDocument();
                 foreach (var doc in uriDocuments)
                 {
@@ -59,6 +63,7 @@ namespace Crawler
                     var htmlBody = htmlDoc.DocumentNode.SelectSingleNode("//html");
                     doc.BrowserText= htmlBody.InnerText.Trim();
                 }
+                Console.WriteLine($"Saving to ES...");
                 var bulkAllObservable = elasticClient.BulkAll(uriDocuments, b => b
                         .Index("uri")
                         // how long to wait between retries

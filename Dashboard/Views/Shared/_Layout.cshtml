@@ -6,7 +6,9 @@
     <title>@ViewData["Title"] - Crawler Dashboard</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
+
     @RenderSection("Styles", required: false)
+
 </head>
 <body>
     <header>
@@ -17,16 +19,16 @@
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                @*<div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="UriPage" asp-action="Index">All Pages</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="UriPage" asp-action="Index">URL List</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Search" asp-action="Index">Full-Text Search</a>
                         </li>
                     </ul>
-                </div>*@
+                </div>
             </div>
         </nav>
     </header>
@@ -44,6 +46,8 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
     @RenderSection("Scripts", required: false)
+
 </body>
 </html>

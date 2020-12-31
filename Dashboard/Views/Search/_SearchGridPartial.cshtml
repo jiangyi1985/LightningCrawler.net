@@ -1,0 +1,39 @@
+﻿@using Microsoft.AspNetCore.Http
+@using Newtonsoft.Json
+@using NonFactors.Mvc.Grid
+
+@model Dashboard.Models.SearchPageDto
+
+@*@{
+    GridConfig gridConfig = ViewBag.gridConfig;
+}*@
+
+@(Html
+      .Grid(Model.Result)
+      .Build(columns =>
+      {
+          //columns.Add(model => model.Id).Hidden();
+          columns.Add(model =>
+              Html.Raw($"<a target=\"_blank\" href=\"{model.Uri}\">{model.Uri}</a>")
+          ).Titled("Uri Key");
+          columns.Add(model =>Html.Raw(model.Highlight)).Titled("Highlight");
+          //columns.Add(model => model.Highlight).Titled("Highlight_Text");
+          columns.Add(model =>model.Score).Titled("Score");
+      })
+      .Using(GridFilterMode.Header)
+      .Using(GridProcessingMode.Manual)
+      .Empty("No data found")
+      //.Filterable()
+      //.Sortable()
+      .Pageable(pager =>
+      {
+          pager.PageSizes = new Dictionary<Int32, String> { { 20, "20" }, { 50, "50" }, { 100, "100" }, { 200, "200" } };
+          pager.ShowPageSizes = true;
+          pager.TotalRows = Model.Total;
+          //pager.PageSizes.Clear();
+          //pager.RowsPerPage = 20;
+      })
+      //.Css("css-classes")
+      .AppendCss("table-hover")
+      //.Configure(gridConfig??new GridConfig())
+      )

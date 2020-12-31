@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Common.ConfigModel;
 using Common.CrawlerDbContext;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -41,6 +42,10 @@ namespace Dashboard
             );
 
             //services.AddSingleton<>()
+
+            var esConnectionOptions = new EsConnectionOptions();
+            Configuration.GetSection(EsConnectionOptions.EsConnection).Bind(esConnectionOptions);
+            services.AddSingleton(esConnectionOptions);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
