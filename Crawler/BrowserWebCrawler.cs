@@ -7,6 +7,7 @@ using System.Threading;
 using System.Web;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.Extensions;
 using OpenQA.Selenium.Support.UI;
 
@@ -40,6 +41,7 @@ namespace Crawler
 
             driver =new ChromeDriver(chromeOptions);
             driver.Manage().Timeouts().PageLoad=TimeSpan.FromSeconds(30);
+            driver.Manage().Window.Size = new System.Drawing.Size(1400, 900);//some webpages do not show all content under small width like <1250
         }
 
         public CrawlResult CrawlPage(CrawlPlan plan)
@@ -94,15 +96,43 @@ namespace Crawler
 
 
 
+            var linkSets = new List<List<string>>();
+
             //find links
-            var links = driver.FindElements(By.XPath("//a[@href]"));
-            if (links != null)
+            var linkElements = driver.FindElements(By.XPath("//a[@href]"));
+            if (linkElements != null && linkElements.Count > 0)
+                linkSets.Add(linkElements.Select(o => o.GetAttribute("href")).ToList());
+
+            //------------------------------------------
+            //Some Webpages DO NOT show all elements unless interacted with e.g. hovering)
+            //try hovering and findind more contents
+            //------------------------------------------
+            var hoverableList = new string[] { 
+                //"//p[.='Creators']", "//p[.='Learn more']", "//p[.='Crypto Community']"
+            };
+            if (hoverableList != null && hoverableList.Length > 0)
+            {
+                var action = new Actions(driver);
+                foreach (var hoverableXPath in hoverableList)
+                {
+                    var hoverableElement = driver.FindElement(By.XPath(hoverableXPath));
+                    if (hoverableElement != null)
+                    {
+                        action.MoveToElement(hoverableElement).Perform();
+                        linkElements = driver.FindElements(By.XPath("//a[@href]"));
+                        if (linkElements != null && linkElements.Count > 0)
+                            linkSets.Add(linkElements.Select(o => o.GetAttribute("href")).ToList());
+                    }
+                }
+            }
+
+            var linksToSave = new List<CrawledLink>();
+            foreach (var linkSet in linkSets)
             {
                 //Console.WriteLine($"\tfound {links.Count} child links.");
-                var linksToSave = new List<CrawledLink>();
-                foreach (var link in links)
+                foreach (var href in linkSet)
                 {
-                    var href = link.GetAttribute("href");
+                    //var href = link.GetAttribute("href");
                     //if(href.Contains("fortnite-stats/")) Debugger.Break();
 
                     var decoded = HttpUtility.HtmlDecode(href);
@@ -136,9 +166,8 @@ namespace Crawler
                         Console.WriteLine(e);
                     }
                 }
-
-                crawlResult.LinkAbsoluteUris = linksToSave;
             }
+            crawlResult.LinkAbsoluteUris = linksToSave;
 
             return crawlResult;
         }
